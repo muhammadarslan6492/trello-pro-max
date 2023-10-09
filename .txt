@@ -1,0 +1,5 @@
+npx prisma migrate dev --name "init"
+
+
+
+npx nest generate resource
