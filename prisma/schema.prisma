@@ -21,6 +21,7 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   otp       OTP?
+  usertype  UserType  @default(User)
 }
 
 model OTP {
@@ -29,4 +30,9 @@ model OTP {
   expiresAt DateTime
   userId    Int      @unique      // No need for @unique here
   user      User      @relation(fields: [userId], references: [id])
+}
+
+enum UserType {
+ User
+ ADMIN
 }
