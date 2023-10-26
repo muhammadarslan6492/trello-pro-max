@@ -22,12 +22,14 @@ model User {
   updatedAt DateTime  @updatedAt
   otp       OTP?
   usertype  UserType  @default(User)
+  verify    Boolean   @default(false)
 }
 
 model OTP {
   id        Int      @id @default(autoincrement())
   code      String
   expiresAt DateTime
+  isExpired Boolean  @default(false)
   userId    Int      @unique      // No need for @unique here
   user      User      @relation(fields: [userId], references: [id])
 }

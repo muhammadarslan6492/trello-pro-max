@@ -31,3 +31,35 @@ export class CreateUserDto {
   @IsEnum(UserType)
   userType?: UserType;
 }
+
+export class OtpVerifyDto {
+  @IsEmail()
+  @IsNotEmpty()
+  @ApiProperty()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  code: string;
+}
+
+export class SigninDto {
+  @IsEmail()
+  @IsNotEmpty()
+  @ApiProperty()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @ApiProperty()
+  password: string;
+}
+
+export class ResendOtpDto {
+  @IsEmail()
+  @IsNotEmpty()
+  @ApiProperty()
+  email: string;
+}
