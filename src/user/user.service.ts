@@ -178,18 +178,22 @@ export class UserService {
         throw new UnauthorizedException('Email or password is invalid.');
       }
       const tokenDate = {
+        id: user.id,
         username: user.username,
         email: user.email,
         verify: user.verify,
+        userType: user.usertype,
       };
 
       const token = this.utils.generateToken(tokenDate);
 
       const userWithToken: User = {
+        id: user.id,
         username: user.username,
         email: user.email,
         verify: user.verify,
         token: token,
+        userType: user.usertype,
       };
 
       return userWithToken;
