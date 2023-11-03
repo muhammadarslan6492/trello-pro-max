@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { sign, SignOptions } from 'jsonwebtoken';
 
 @Injectable()
 export class Utils {
@@ -12,12 +11,6 @@ export class Utils {
     return hashedPassword;
   }
 
-  async comparePasswords(
-    plainTextPassword: string,
-    hashedPassword: string,
-  ): Promise<boolean> {
-    return bcrypt.compare(plainTextPassword, hashedPassword);
-  }
   generateOTPCode(): string {
     const min = 100000; // Minimum 6-digit number
     const max = 999999; // Maximum 6-digit number
@@ -29,14 +22,5 @@ export class Utils {
     const otpCode = otpNumber.toString().padStart(6, '0');
 
     return otpCode;
-  }
-
-  generateToken(payload: any, options?: SignOptions): string {
-    const tokenOptions: SignOptions = {
-      expiresIn: '1h', // Token expires in 1 hour (you can adjust this as needed)
-      ...options,
-    };
-
-    return sign(payload, this.secretKey, tokenOptions);
   }
 }

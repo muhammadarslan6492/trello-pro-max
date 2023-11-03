@@ -14,12 +14,14 @@ import {
 
 import { Utils } from '../utils/utils';
 import { User } from './user.interface';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly utils: Utils,
+    private readonly authService: AuthService,
   ) {}
 
   async createUser({
@@ -170,7 +172,7 @@ export class UserService {
       if (!user.verify) {
         throw new ConflictException('User not verified yet.');
       }
-      const isPasswordValid = this.utils.comparePasswords(
+      const isPasswordValid = this.authService.comparePasswords(
         password,
         user.password,
       );
@@ -185,7 +187,7 @@ export class UserService {
         userType: user.usertype,
       };
 
-      const token = this.utils.generateToken(tokenDate);
+      const token = await this.authService.generateToken(tokenDate);
 
       const userWithToken: User = {
         id: user.id,

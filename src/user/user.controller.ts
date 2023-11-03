@@ -2,20 +2,26 @@ import {
   Controller,
   Post,
   Body,
-  //   Get,
+  Get,
   InternalServerErrorException,
   //   Param,
   //   ParseEnumPipe,
   //   UnauthorizedException,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 
 import {
   ApiTags,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { UserService } from './user.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CreateUserDto,
   OtpVerifyDto,
@@ -73,5 +79,19 @@ export class UserController {
     } catch (err) {
       throw new InternalServerErrorException(err);
     }
+  }
+
+  @Get('/profile')
+  @UseGuards(JwtAuthGuard) // Protect this route with JWT authentication
+  @ApiTags('This API is used to get the user profile')
+  @ApiBearerAuth() // Add this line to specify that the API requires a bearer token
+  @ApiOkResponse({ description: 'User profile retrieved successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async getProfile(@Request() req) {
+    // Access the authenticated user using req.user
+    const user = req.user;
+    // Your logic to retrieve the user's profile
+
+    return user; // You can return the user's profile or any other data
   }
 }
