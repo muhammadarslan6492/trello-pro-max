@@ -179,12 +179,15 @@ export class UserService {
       if (!isPasswordValid) {
         throw new UnauthorizedException('Email or password is invalid.');
       }
+
+      const timestamp = Date.now();
       const tokenDate = {
         id: user.id,
         username: user.username,
         email: user.email,
         verify: user.verify,
         userType: user.usertype,
+        timestamp: timestamp,
       };
 
       const token = await this.authService.generateToken(tokenDate);

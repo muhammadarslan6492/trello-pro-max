@@ -2,12 +2,10 @@ import {
   IsString,
   IsNotEmpty,
   IsEmail,
-  MinLength,
   IsEnum,
   IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { UserType } from '@prisma/client';
 
 export class CreateUserDto {
@@ -23,7 +21,6 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
   @ApiProperty()
   password: string;
 
@@ -52,7 +49,6 @@ export class SigninDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
   @ApiProperty()
   password: string;
 }

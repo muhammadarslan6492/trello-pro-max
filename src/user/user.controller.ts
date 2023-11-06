@@ -7,6 +7,7 @@ import {
   //   Param,
   //   ParseEnumPipe,
   //   UnauthorizedException,
+  UseInterceptors,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -28,10 +29,15 @@ import {
   SigninDto,
   ResendOtpDto,
 } from './dto/user.dto';
+import { TokenBlacklistService } from '../auth/token-blacklist';
+import { TokenBlacklistInterceptor } from '../interceptor/token-blacklist.interceptor';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly tokenBlackList: TokenBlacklistService,
+  ) {}
 
   @Post('/signup')
   @ApiTags('This api is used to signup user')
@@ -82,16 +88,29 @@ export class UserController {
   }
 
   @Get('/profile')
-  @UseGuards(JwtAuthGuard) // Protect this route with JWT authentication
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
   @ApiTags('This API is used to get the user profile')
-  @ApiBearerAuth() // Add this line to specify that the API requires a bearer token
+  @ApiBearerAuth()
   @ApiOkResponse({ description: 'User profile retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async getProfile(@Request() req) {
-    // Access the authenticated user using req.user
     const user = req.user;
-    // Your logic to retrieve the user's profile
+    return user;
+  }
 
-    return user; // You can return the user's profile or any other data
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This is logout Api')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'User logout successfully' })
+  async logout(@Request() req) {
+    try {
+      const token = req.user.token;
+      return await this.tokenBlackList.addToBlackList(token);
+    } catch (err) {
+      throw new InternalServerErrorException(err);
+    }
   }
 }

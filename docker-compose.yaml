@@ -9,3 +9,11 @@ services:
       POSTGRES_PASSWORD: postgress
     ports:
       - '5432:5432'
+  redis:
+    image: redis:latest # Use the latest Redis image
+    container_name: my-redis # Container name
+    ports:
+      - '6379:6379' # Expose the default Redis port
+    volumes:
+      - ./data:/data # Optional: Mount a volume to persist Redis data
+    command: redis-server --appendonly yes # Optional: Enable data persistence
