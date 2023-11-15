@@ -13,14 +13,16 @@ export class TokenBlacklistService {
   }
 
   async addToBlackList(tokenId: string): Promise<any> {
+    // await this.redisClient.flushall();
     const addtoken = await this.redisClient.sadd('blackList', tokenId);
-    console.log(addtoken);
-    return addtoken;
+    if (addtoken) {
+      return { message: 'User logout successfully' };
+    }
+    throw new Error('Something went wrong');
   }
 
   async isTokenBlackList(tokenId: string): Promise<boolean> {
     const tokenSet = await this.redisClient.smembers('blackList');
-    console.log(tokenSet);
     return tokenSet.includes(tokenId);
   }
 }

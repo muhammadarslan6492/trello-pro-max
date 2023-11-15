@@ -18,15 +18,10 @@ export class TokenBlacklistInterceptor implements NestInterceptor {
   ): Promise<Observable<any>> {
     // Get the request object
     const request = context.switchToHttp().getRequest();
-
-    // Check if the token is blacklisted
     const isTokenBlacklisted =
       await this.tokenBlacklistService.isTokenBlackList(
-        request.user.jwtTokenId,
+        request.headers.authorization.split(' ')[1],
       );
-
-    console.log('this is final setups', isTokenBlacklisted);
-
     if (isTokenBlacklisted) {
       // Handle token blacklisting (e.g., return an unauthorized response)
       throw new ConflictException('Invalid auth token');

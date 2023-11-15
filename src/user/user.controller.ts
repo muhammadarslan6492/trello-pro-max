@@ -107,7 +107,7 @@ export class UserController {
   @ApiOkResponse({ description: 'User logout successfully' })
   async logout(@Request() req) {
     try {
-      const token = req.user.token;
+      const token = req.headers.authorization.split(' ')[1];
       return await this.tokenBlackList.addToBlackList(token);
     } catch (err) {
       throw new InternalServerErrorException(err);
