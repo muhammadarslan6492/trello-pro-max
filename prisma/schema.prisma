@@ -26,6 +26,7 @@ model User {
   verify    Boolean   @default(false)
   projects  Project[]
   members   Member[]
+  permissions ProjectPermission[]
 }
 
 
@@ -48,6 +49,7 @@ model Project {
   user        User      @relation(fields: [userId], references: [id])
   members     ProjectMembers[]
   teams       ProjectsTeams[]
+  permissions ProjectPermission[]
   
 }
 
@@ -90,6 +92,19 @@ model ProjectsTeams {
   teamId      String
 
   @@id([projectId, teamId])
+}
+
+model ProjectPermission {
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  canGet    Boolean
+  canCreate Boolean  @default(false)
+  canUpdate Boolean  @default(false)
+  canDelete Boolean  @default(false)
+
+  @@id([projectId, userId])
 }
 
 
