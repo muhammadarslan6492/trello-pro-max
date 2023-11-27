@@ -10,33 +10,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 // prisma/schema.prisma
 
 model User {
-  id        Int       @id @default(autoincrement())
+  id        String    @id @default(uuid())
   username  String    @unique
   email     String    @unique
   password  String
-  firstName String   
-  lastName  String 
+  firstName String
+  lastName  String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  otp       OTP?
-  usertype  UserType  @default(User)
+  otp       OTP[]
+  usertype  UserType  @default(User) // Specify the default value for the enum
   verify    Boolean   @default(false)
+  projects  Project[]
+  members   Member[]
 }
 
+
 model OTP {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   code      String
   expiresAt DateTime
   isExpired Boolean  @default(false)
-  userId    Int      @unique      // No need for @unique here
-  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 }
 
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  startDate   DateTime
+  endDate     DateTime?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  members     ProjectMembers[]
+  teams       ProjectsTeams[]
+  
+}
+
+model Team {
+  id      String   @id @default(uuid())
+  name    String
+  leadId  String?  @unique
+  lead    Member?  @relation(fields: [leadId], references: [id])
+  members Member[] @relation("teamMembers")
+  projects ProjectsTeams[]
+}
+
+
+model Member {
+  id       String  @id @default(uuid())
+  position String
+  level    Int
+  phone    String?
+  user     User    @relation(fields: [userId], references: [id])
+  userId   String
+  leadOf   Team?   @relation("teamMembers", fields: [teamId], references: [id])
+  teamId   String?
+  Team     Team?
+  projects ProjectMembers[]
+}
+
+model ProjectMembers {
+  project    Project  @relation(fields: [projectId], references: [id])
+  projectId  String
+  members    Member   @relation(fields: [memberId], references: [id])
+  memberId  String
+
+  @@id([projectId, memberId])
+}
+
+model ProjectsTeams {
+  project     Project @relation(fields: [projectId], references: [id])
+  projectId   String
+  team        Team  @relation(fields: [teamId], references: [id])
+  teamId      String
+
+  @@id([projectId, teamId])
+}
+
+
+
 enum UserType {
- User
- ADMIN
+  User
+  ADMIN
 }
