@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateProjectDTO } from './dto/project.dto';
+import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
 import { Project } from './project.interface';
 
 @Injectable()
@@ -36,7 +36,11 @@ export class ProjectService {
     }
   }
 
-  async listProjects(user, page: number = 1, pageSize: number = 10) {
+  async listProjects(
+    user,
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<[Project]> {
     try {
       const { id, UserType } = user;
       let projects;
@@ -83,6 +87,96 @@ export class ProjectService {
       return projects;
     } catch (error) {
       throw new NotFoundException('No projects found', error.message);
+    }
+  }
+
+  async projectById(user, projectId: string): Promise<Project> {
+    try {
+      const { id, UserType } = user;
+
+      let project;
+
+      if (UserType === 'Admin') {
+        project = await this.prismaService.project.findFirst({
+          where: { id: projectId },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        });
+        if (!project) {
+          throw new NotFoundException('No projects found');
+        }
+        return project;
+      } else {
+        project = await this.prismaService.project.findFirst({
+          where: { AND: { id: projectId, userId: id } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        });
+        if (!project) {
+          throw new NotFoundException('No projects found with this id');
+        }
+      }
+      return project;
+    } catch (error) {
+      throw new NotFoundException('No projects found', error.message);
+    }
+  }
+
+  async updateProjectById(
+    user,
+    projectId,
+    data: UpdateProjectDTO,
+  ): Promise<Project> {
+    try {
+      const { UserType } = user;
+      let project;
+
+      if (UserType === 'Admin') {
+        project = await this.prismaService.project.findFirst({
+          where: { id: projectId },
+        });
+        if (!project) {
+          throw new NotFoundException('No projects found with this id');
+        }
+        project = await this.prismaService.project.update({
+          where: { id: projectId },
+          data: { ...data },
+        });
+        return project;
+      } else {
+        project = await this.prismaService.project.findFirst({
+          where: { id: projectId },
+        });
+        if (!project) {
+          throw new NotFoundException('No projects found with this id');
+        }
+        project = await this.prismaService.project.update({
+          where: { id: projectId },
+          data: { ...data },
+        });
+      }
+
+      return project;
+    } catch (err) {
+      throw new NotFoundException(err.message);
     }
   }
 }

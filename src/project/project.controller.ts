@@ -13,7 +13,9 @@ import {
   UsePipes,
   ValidationPipe,
   Query,
-  ParseIntPipe,
+  Put,
+  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 
 import {
@@ -25,13 +27,14 @@ import {
   ApiUnauthorizedResponse,
   ApiOkResponse,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TokenBlacklistInterceptor } from '../interceptor/token-blacklist.interceptor';
 
 import { ProjectService } from './project.service';
-import { CreateProjectDTO } from './dto/project.dto';
+import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
 
 @Controller('project')
 export class ProjectController {
@@ -68,24 +71,69 @@ export class ProjectController {
   @ApiQuery({ name: 'pageSize', type: Number, required: false })
   async listProjects(
     @Request() req,
-    @Query('page', ParseIntPipe) page?: number,
-    @Query('pageSize', ParseIntPipe) pageSize?: number,
+    @Query('page') page?: any,
+    @Query('pageSize') pageSize?: any,
   ) {
     try {
       const { user } = req;
+
+      // Set default values from environment variables
       const defaultPage = parseInt(process.env.DEFAULT_PAGE || '1', 10);
       const defaultPageSize = parseInt(
         process.env.DEFAULT_PAGE_SIZE || '10',
         10,
       );
-      const resolvedPage = page || defaultPage;
-      const resolvedPageSize = pageSize || defaultPageSize;
+
+      // Use default values if page and pageSize are not provided
+      const resolvedPage =
+        page !== undefined ? parseInt(page, 10) : defaultPage;
+      const resolvedPageSize =
+        pageSize !== undefined ? parseInt(pageSize, 10) : defaultPageSize;
 
       return this.projectService.listProjects(
         user,
         resolvedPage,
         resolvedPageSize,
       );
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Get('/:id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This API is used to get a list of projects')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'List projects retrieved successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async projectById(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
+    try {
+      const { user } = req;
+      const projectId: string = id;
+
+      return this.projectService.projectById(user, projectId);
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Put('/:id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This API is used to update a project by ID')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Project updated successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async updateProjectById(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateProjectDTO: UpdateProjectDTO,
+  ) {
+    try {
+      const { user } = req;
+
+      return this.projectService.updateProjectById(user, id, updateProjectDTO);
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
