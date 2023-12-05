@@ -16,6 +16,7 @@ import {
   Put,
   Param,
   ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 
 import {
@@ -134,6 +135,24 @@ export class ProjectController {
       const { user } = req;
 
       return this.projectService.updateProjectById(user, id, updateProjectDTO);
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Delete('/:id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This API is used to delete project')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Project delete successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async deleteProject(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
+    try {
+      const { user } = req;
+      const projectId: string = id;
+
+      return this.projectService.deleteProject(user, projectId);
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
 import { Project } from './project.interface';
+import { User } from 'src/user/user.interface';
 
 @Injectable()
 export class ProjectService {
@@ -37,15 +39,15 @@ export class ProjectService {
   }
 
   async listProjects(
-    user,
+    user: User,
     page: number = 1,
     pageSize: number = 10,
   ): Promise<[Project]> {
     try {
-      const { id, UserType } = user;
+      const { id, userType } = user;
       let projects;
 
-      if (UserType === 'Admin') {
+      if (userType === 'Admin') {
         projects = await this.prismaService.project.findMany({
           include: {
             user: {
@@ -90,13 +92,13 @@ export class ProjectService {
     }
   }
 
-  async projectById(user, projectId: string): Promise<Project> {
+  async projectById(user: User, projectId: string): Promise<Project> {
     try {
-      const { id, UserType } = user;
+      const { id, userType } = user;
 
       let project;
 
-      if (UserType === 'Admin') {
+      if (userType === 'Admin') {
         project = await this.prismaService.project.findFirst({
           where: { id: projectId },
           include: {
@@ -141,15 +143,15 @@ export class ProjectService {
   }
 
   async updateProjectById(
-    user,
-    projectId,
+    user: User,
+    projectId: string,
     data: UpdateProjectDTO,
   ): Promise<Project> {
     try {
-      const { UserType } = user;
+      const { userType, id } = user;
       let project;
 
-      if (UserType === 'Admin') {
+      if (userType === 'Admin') {
         project = await this.prismaService.project.findFirst({
           where: { id: projectId },
         });
@@ -161,7 +163,15 @@ export class ProjectService {
           data: { ...data },
         });
         return project;
-      } else {
+      }
+
+      const permission = await this.prismaService.projectPermission.findFirst({
+        where: {
+          AND: { projectId, userId: id },
+        },
+      });
+
+      if (permission?.canUpdate) {
         project = await this.prismaService.project.findFirst({
           where: { id: projectId },
         });
@@ -172,11 +182,53 @@ export class ProjectService {
           where: { id: projectId },
           data: { ...data },
         });
+
+        return project;
       }
 
-      return project;
-    } catch (err) {
-      throw new NotFoundException(err.message);
+      throw new ConflictException('Access denied.. ');
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  async deleteProject(user: User, projectId: string): Promise<string> {
+    try {
+      const { id, userType } = user;
+      let project;
+
+      if (userType === 'Admin') {
+        project = await this.prismaService.project.delete({
+          where: { id: projectId },
+          include: { permissions: true }, // Include related permissions
+        });
+
+        return 'Project deleted';
+      }
+      const permission = await this.prismaService.projectPermission.findFirst({
+        where: {
+          AND: { projectId, userId: id },
+        },
+      });
+
+      if (permission?.canDelete) {
+        project = await this.prismaService.project.findFirst({
+          where: { id: projectId },
+        });
+        if (!project) {
+          throw new NotFoundException('No projects found with this id');
+        }
+        project = await this.prismaService.project.delete({
+          where: { id: projectId },
+          include: { permissions: true }, // Include related permissions
+        });
+
+        return 'Project deleted';
+      }
+
+      throw new ConflictException('Access denied.. ');
+    } catch (error) {
+      throw new NotFoundException(error.message);
     }
   }
 }
