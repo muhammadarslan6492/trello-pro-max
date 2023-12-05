@@ -30,7 +30,7 @@ export class UserService {
     password,
     firstName,
     lastName,
-  }: CreateUserDto): Promise<string> {
+  }: CreateUserDto) {
     try {
       const existingUser = await this.prismaService.user.findFirst({
         where: {
@@ -59,8 +59,6 @@ export class UserService {
       });
       const otpCode = this.utils.generateOTPCode();
 
-      console.log(User);
-
       // Calculate the expiration time (one hour from now)
       const expirationTime = new Date();
       expirationTime.setHours(expirationTime.getHours() + 1);
@@ -73,8 +71,8 @@ export class UserService {
           userId: User.id,
         },
       });
-      console.log(otp);
-      return 'OTP sent to your email address';
+
+      return { message: 'Otp sent your email', otp };
     } catch (error) {
       throw new BadRequestException(`User creation failed. ${error.message}`);
     }
@@ -122,7 +120,7 @@ export class UserService {
     }
   }
 
-  async resendOtp({ email }: ResendOtpDto): Promise<string> {
+  async resendOtp({ email }: ResendOtpDto) {
     // Find the user
     const user = await this.prismaService.user.findFirst({
       where: { email },
@@ -160,7 +158,7 @@ export class UserService {
 
     // You can send the new OTP to the user's email (implement this logic)
 
-    return 'OTP sent to your email address';
+    return { message: 'OTP sent to your email address', otpCode };
   }
 
   async signin({ email, password }: SigninDto): Promise<User> {
