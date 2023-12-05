@@ -28,6 +28,8 @@ export class UserService {
     username,
     email,
     password,
+    firstName,
+    lastName,
   }: CreateUserDto): Promise<string> {
     try {
       const existingUser = await this.prismaService.user.findFirst({
@@ -51,6 +53,8 @@ export class UserService {
           username,
           email,
           password: hash,
+          firstName,
+          lastName,
         },
       });
       const otpCode = this.utils.generateOTPCode();
@@ -184,6 +188,8 @@ export class UserService {
       const tokenDate = {
         id: user.id,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         verify: user.verify,
         userType: user.usertype,
@@ -195,6 +201,8 @@ export class UserService {
       const userWithToken: User = {
         id: user.id,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         verify: user.verify,
         token: token,

@@ -3,6 +3,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ProjectModule } from './project/project.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     UserModule,
     AuthModule,
     CacheModule.register({ isGlobal: true }),
+    ProjectModule,
   ],
   controllers: [],
   providers: [],

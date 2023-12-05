@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   UseGuards,
   Request,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 
 import {
@@ -43,6 +45,7 @@ export class UserController {
   @ApiTags('This api is used to signup user')
   @ApiCreatedResponse({ description: 'User created successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
+  @UsePipes(new ValidationPipe())
   async signupUser(@Body() body: CreateUserDto) {
     try {
       return this.userService.createUser(body);
@@ -55,6 +58,7 @@ export class UserController {
   @ApiTags('This api is used to verify user')
   @ApiCreatedResponse({ description: 'User verified successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
+  @UsePipes(new ValidationPipe())
   async verify(@Body() body: OtpVerifyDto) {
     try {
       return this.userService.verifyOtp(body);
@@ -67,6 +71,7 @@ export class UserController {
   @ApiTags('This api is used to resend otp')
   @ApiCreatedResponse({ description: 'Oto Successfully sent' })
   @ApiBadRequestResponse({ description: 'Bad request' })
+  @UsePipes(new ValidationPipe())
   async resend(@Body() body: ResendOtpDto) {
     try {
       return this.userService.resendOtp(body);
@@ -79,6 +84,7 @@ export class UserController {
   @ApiTags('This api is used to signin user')
   @ApiCreatedResponse({ description: 'User signin successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
+  @UsePipes(new ValidationPipe())
   async signin(@Body() body: SigninDto) {
     try {
       return this.userService.signin(body);
@@ -99,7 +105,7 @@ export class UserController {
     return user;
   }
 
-  @Post()
+  @Post('/logout')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
   @ApiTags('This is logout Api')
