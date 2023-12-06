@@ -28,7 +28,6 @@ import {
   ApiUnauthorizedResponse,
   ApiOkResponse,
   ApiQuery,
-  ApiParam,
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

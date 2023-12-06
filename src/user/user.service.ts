@@ -3,6 +3,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -10,10 +11,11 @@ import {
   OtpVerifyDto,
   SigninDto,
   ResendOtpDto,
+  CreateOrganizationDTO,
 } from './dto/user.dto';
 
 import { Utils } from '../utils/utils';
-import { User } from './user.interface';
+import { Organization, User } from './user.interface';
 import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
@@ -208,6 +210,47 @@ export class UserService {
       };
 
       return userWithToken;
+    } catch (error) {
+      throw new BadRequestException(`${error.message}`);
+    }
+  }
+
+  async createOrganization(
+    user: User,
+    data: CreateOrganizationDTO,
+  ): Promise<string> {
+    try {
+      const { id } = user;
+      const organization = await this.prismaService.organization.create({
+        data: {
+          name: data.name,
+          userId: id,
+        },
+      });
+      return organization.id;
+    } catch (error) {
+      throw new BadRequestException(`${error.message}`);
+    }
+  }
+
+  async listOrganizations(
+    user: User,
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<any> {
+    try {
+      const { id } = user;
+      const organization = await this.prismaService.organization.findMany({
+        where: { userId: id },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      if (!organization || organization.length === 0) {
+        throw new NotFoundException('No organization found for the user');
+      }
+
+      return organization;
     } catch (error) {
       throw new BadRequestException(`${error.message}`);
     }

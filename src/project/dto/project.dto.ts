@@ -36,6 +36,11 @@ export class CreateProjectDTO {
   @IsDateString()
   @ApiProperty()
   endDate?: Date;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  organizationId: string;
 }
 
 export class UpdateProjectDTO {

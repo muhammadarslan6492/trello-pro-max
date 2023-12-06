@@ -4,14 +4,12 @@ import {
   Body,
   Get,
   InternalServerErrorException,
-  //   Param,
-  //   ParseEnumPipe,
-  //   UnauthorizedException,
   UseInterceptors,
   UseGuards,
   Request,
   UsePipes,
   ValidationPipe,
+  Query,
 } from '@nestjs/common';
 
 import {
@@ -21,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiUnauthorizedResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 
 import { UserService } from './user.service';
@@ -30,6 +29,7 @@ import {
   OtpVerifyDto,
   SigninDto,
   ResendOtpDto,
+  CreateOrganizationDTO,
 } from './dto/user.dto';
 import { TokenBlacklistService } from '../auth/token-blacklist';
 import { TokenBlacklistInterceptor } from '../interceptor/token-blacklist.interceptor';
@@ -117,6 +117,62 @@ export class UserController {
       return await this.tokenBlackList.addToBlackList(token);
     } catch (err) {
       throw new InternalServerErrorException(err);
+    }
+  }
+
+  @Post('/add-organization')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This api is used to create organization')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'User profile retrieved successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async organization(@Body() body: CreateOrganizationDTO, @Request() req) {
+    try {
+      const { user } = req;
+      return this.userService.createOrganization(user, body);
+    } catch (err) {
+      throw new InternalServerErrorException(err);
+    }
+  }
+
+  @Get('/list-organization')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This API is used to get a list of organizations')
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'List organizations retrieved successfully' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'pageSize', type: Number, required: false })
+  async listOrganizations(
+    @Request() req,
+    @Query('page') page?: any,
+    @Query('pageSize') pageSize?: any,
+  ) {
+    try {
+      const { user } = req;
+
+      // Set default values from environment variables
+      const defaultPage = parseInt(process.env.DEFAULT_PAGE || '1', 10);
+      const defaultPageSize = parseInt(
+        process.env.DEFAULT_PAGE_SIZE || '10',
+        10,
+      );
+
+      // Use default values if page and pageSize are not provided
+      const resolvedPage =
+        page !== undefined ? parseInt(page, 10) : defaultPage;
+      const resolvedPageSize =
+        pageSize !== undefined ? parseInt(pageSize, 10) : defaultPageSize;
+
+      return this.userService.listOrganizations(
+        user,
+        resolvedPage,
+        resolvedPageSize,
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(error);
     }
   }
 }

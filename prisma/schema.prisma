@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -10,25 +9,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/schema.prisma
-
 model User {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  email     String    @unique
-  password  String
-  firstName String
-  lastName  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  otp       OTP[]
-  usertype  UserType  @default(User) // Specify the default value for the enum
-  verify    Boolean   @default(false)
-  projects  Project[]
-  members   Member[]
-  permissions ProjectPermission[]
+  id           String      @id @default(uuid())
+  username     String      @unique
+  email        String      @unique
+  password     String
+  firstName    String
+  lastName     String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  otp          OTP[]
+  usertype     UserType    @default(User)
+  verify       Boolean     @default(false)
+  projects     Project[]
+  members      Member[]
+  permissions  ProjectPermission[]
+  Organization Organization[]
 }
-
 
 model OTP {
   id        String   @id @default(uuid())
@@ -40,28 +37,30 @@ model OTP {
 }
 
 model Project {
-  id          String    @id @default(uuid())
-  name        String
-  description String
-  startDate   DateTime
-  endDate     DateTime?
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  members     ProjectMembers[]
-  teams       ProjectsTeams[]
-  permissions ProjectPermission[]
-  
+  id            String          @id @default(uuid())
+  name          String
+  description   String
+  startDate     DateTime
+  endDate       DateTime?
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  members       ProjectMembers[]
+  teams         ProjectsTeams[]
+  permissions   ProjectPermission[]
+  organization  Organization    @relation(fields: [organizationId], references: [id])
+  organizationId String
 }
 
 model Team {
-  id      String   @id @default(uuid())
-  name    String
-  leadId  String?  @unique
-  lead    Member?  @relation(fields: [leadId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  members Member[] @relation("teamMembers")
-  projects ProjectsTeams[]
+  id            String          @id @default(uuid())
+  name          String
+  leadId        String?         @unique
+  lead          Member?         @relation(fields: [leadId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  members       Member[]        @relation("teamMembers")
+  projects      ProjectsTeams[]
+  organization  Organization    @relation(fields: [organizationId], references: [id])
+  organizationId String
 }
-
 
 model Member {
   id       String  @id @default(uuid())
@@ -74,40 +73,50 @@ model Member {
   teamId   String?
   Team     Team?
   projects ProjectMembers[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
 }
 
 model ProjectMembers {
-  project    Project  @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  projectId  String
-  members    Member   @relation(fields: [memberId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  memberId  String
+  project      Project  @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  projectId    String
+  members      Member   @relation(fields: [memberId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  memberId     String
 
   @@id([projectId, memberId])
 }
 
 model ProjectsTeams {
-  project     Project @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  projectId   String
-  team        Team  @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  teamId      String
+  project      Project @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  projectId    String
+  team         Team    @relation(fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  teamId       String
 
   @@id([projectId, teamId])
 }
 
 model ProjectPermission {
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  canGet    Boolean
-  canCreate Boolean  @default(false)
-  canUpdate Boolean  @default(false)
-  canDelete Boolean  @default(false)
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  canGet      Boolean
+  canCreate   Boolean  @default(false)
+  canUpdate   Boolean  @default(false)
+  canDelete   Boolean  @default(false)
 
   @@id([projectId, userId])
 }
 
-
+model Organization {
+  id    String  @id @default(uuid())
+  name  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  teams Team[]
+  projects Project[]
+  members Member[]
+}
 
 enum UserType {
   User

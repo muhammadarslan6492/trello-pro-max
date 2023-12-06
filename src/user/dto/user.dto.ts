@@ -93,3 +93,10 @@ export class ResendOtpDto {
   @ApiProperty()
   email: string;
 }
+
+export class CreateOrganizationDTO {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  name: string;
+}

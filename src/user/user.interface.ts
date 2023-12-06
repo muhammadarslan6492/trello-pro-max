@@ -8,3 +8,9 @@ export interface User {
   userType: string;
   token: string;
 }
+
+export interface Organization {
+  id: string;
+  name: string;
+  userId: string;
+}
