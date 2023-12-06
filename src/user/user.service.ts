@@ -15,7 +15,7 @@ import {
 } from './dto/user.dto';
 
 import { Utils } from '../utils/utils';
-import { Organization, User } from './user.interface';
+import { User } from './user.interface';
 import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()

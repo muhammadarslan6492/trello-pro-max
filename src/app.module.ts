@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ProjectModule } from './project/project.module';
 import { AppController } from './app.controller';
+import { TeamModule } from './team/team.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AppController } from './app.controller';
     AuthModule,
     CacheModule.register({ isGlobal: true }),
     ProjectModule,
+    TeamModule,
   ],
   controllers: [AppController],
   providers: [],
