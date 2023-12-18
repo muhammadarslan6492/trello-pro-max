@@ -40,5 +40,34 @@ export class TeamService {
     }
   }
 
-  async listTeams(): Promise<void> {}
+  async listTeams(
+    user: User,
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<any> {
+    try {
+      const { userType } = user;
+      let projects;
+
+      if (userType === 'Admin') {
+        projects = await this.prismaService.team.findMany({
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        });
+      } else {
+        projects = await this.prismaService.team.findMany({
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        });
+
+        if (!projects || projects.length === 0) {
+          throw new NotFoundException('No teams found');
+        }
+      }
+
+      return projects;
+    } catch (error) {
+      throw new NotFoundException('No teams found', error.message);
+    }
+  }
 }

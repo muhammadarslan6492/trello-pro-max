@@ -72,3 +72,14 @@ export class UpdateProjectDTO {
   @ApiProperty()
   endDate?: Date;
 }
+
+export class AssignTeamsToProjectDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  projectId: string; // Assuming project ID is a string, adjust the type accordingly
+
+  @IsNotEmpty()
+  @ApiProperty()
+  teamIds: string[];
+}

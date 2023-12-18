@@ -70,7 +70,7 @@ export class TeamController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiQuery({ name: 'page', type: Number, required: false })
   @ApiQuery({ name: 'pageSize', type: Number, required: false })
-  async listProjects(
+  async listTeam(
     @Request() req,
     @Query('page') page?: any,
     @Query('pageSize') pageSize?: any,
@@ -91,7 +91,7 @@ export class TeamController {
       const resolvedPageSize =
         pageSize !== undefined ? parseInt(pageSize, 10) : defaultPageSize;
 
-      return this.teamService.listTeams();
+      return this.teamService.listTeams(user, resolvedPage, resolvedPageSize);
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

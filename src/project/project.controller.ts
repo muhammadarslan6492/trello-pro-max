@@ -34,7 +34,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TokenBlacklistInterceptor } from '../interceptor/token-blacklist.interceptor';
 
 import { ProjectService } from './project.service';
-import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
+import {
+  CreateProjectDTO,
+  UpdateProjectDTO,
+  AssignTeamsToProjectDto,
+} from './dto/project.dto';
 
 @Controller('project')
 export class ProjectController {
@@ -154,6 +158,29 @@ export class ProjectController {
       return this.projectService.deleteProject(user, projectId);
     } catch (error) {
       throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Post('/assign-teams')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('This API is used to assignTeams to project')
+  @ApiBearerAuth()
+  @ApiCreatedResponse({
+    description: 'This api return with success message',
+  })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @UsePipes(new ValidationPipe())
+  async assignTeamToProject(
+    @Body() body: AssignTeamsToProjectDto,
+    @Request() req,
+  ) {
+    try {
+      const { user } = req;
+      return this.projectService.assignTeamsToProject(body, user);
+    } catch (err) {
+      throw new InternalServerErrorException(err);
     }
   }
 }

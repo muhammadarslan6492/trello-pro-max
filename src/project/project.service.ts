@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
+import {
+  CreateProjectDTO,
+  UpdateProjectDTO,
+  AssignTeamsToProjectDto,
+} from './dto/project.dto';
 import { Project } from './project.interface';
 import { User } from 'src/user/user.interface';
 
@@ -42,7 +46,7 @@ export class ProjectService {
     user: User,
     page: number = 1,
     pageSize: number = 10,
-  ): Promise<[Project]> {
+  ): Promise<[any]> {
     try {
       const { id, userType } = user;
       let projects;
@@ -227,6 +231,52 @@ export class ProjectService {
       }
 
       throw new ConflictException('Access denied.. ');
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  async assignTeamsToProject(
+    input: AssignTeamsToProjectDto,
+    user: User,
+  ): Promise<string> {
+    try {
+      const { projectId, teamIds } = input;
+
+      const project = await this.prismaService.project.findFirst({
+        where: {
+          id: projectId,
+          userId: user.id,
+        },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+      const projectsTeamsData = teamIds.map((teamId) => ({
+        projectId,
+        teamId,
+      }));
+
+      // Validate teamIds
+      const validTeams = await this.prismaService.team.findMany({
+        where: {
+          id: {
+            in: teamIds,
+          },
+          organizationId: project.organizationId,
+        },
+      });
+
+      if (validTeams.length !== teamIds.length) {
+        throw new BadRequestException('Invalid teamId(s) provided');
+      }
+
+      await this.prismaService.projectsTeams.createMany({
+        data: projectsTeamsData,
+      });
+
+      return `Teams assigned to project with ID ${projectId}`;
     } catch (error) {
       throw new NotFoundException(error.message);
     }
