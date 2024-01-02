@@ -3,6 +3,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -10,10 +11,15 @@ import {
   OtpVerifyDto,
   SigninDto,
   ResendOtpDto,
+  CreateOrganizationDTO,
 } from './dto/user.dto';
 
 import { Utils } from '../utils/utils';
-import { User } from './user.interface';
+import {
+  MemberJWTInterface,
+  OrganizationListInterface,
+  User,
+} from './user.interface';
 import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
@@ -210,6 +216,158 @@ export class UserService {
       return userWithToken;
     } catch (error) {
       throw new BadRequestException(`${error.message}`);
+    }
+  }
+
+  async createOrganization(
+    user: User,
+    data: CreateOrganizationDTO,
+  ): Promise<string> {
+    try {
+      const { id } = user;
+      const organization = await this.prismaService.organization.create({
+        data: {
+          name: data.name,
+          userId: id,
+        },
+      });
+
+      await this.prismaService.organizationPermission.create({
+        data: {
+          orgId: organization.id,
+          userId: id,
+          canGet: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: true,
+        },
+      });
+
+      await this.prismaService.member.create({
+        data: {
+          position: 'CREATOR',
+          level: 'Level_4',
+          userId: id,
+          organizationId: organization.id,
+        },
+      });
+
+      return organization.id;
+    } catch (error) {
+      throw new BadRequestException(`${error.message}`);
+    }
+  }
+
+  async listOrganizations(
+    user: User,
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<OrganizationListInterface[]> {
+    try {
+      const { id } = user;
+      const organization = await this.prismaService.organization.findMany({
+        where: { userId: id },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      if (!organization || organization.length === 0) {
+        throw new NotFoundException('No organization found for the user');
+      }
+
+      return organization;
+    } catch (error) {
+      throw new BadRequestException(`${error.message}`);
+    }
+  }
+
+  async switchOrganization(
+    user: User,
+    organizationId: string,
+  ): Promise<MemberJWTInterface> {
+    try {
+      const { id, username, firstName, lastName, email, verify } = user;
+
+      const organization = await this.prismaService.organization.findFirst({
+        where: {
+          id: organizationId,
+          userId: id,
+        },
+        include: {
+          members: true,
+        },
+      });
+
+      const member = await this.prismaService.member.findFirst({
+        where: { organizationId: organization.id, userId: id },
+      });
+      const timestamp = Date.now();
+      const memberJwtTokenData = {
+        id: id,
+        memberId: member.id,
+        username,
+        firstName,
+        lastName,
+        email,
+        verify,
+        position: member.position,
+        level: member.level,
+        organizationId: member.organizationId,
+        timestamp: timestamp,
+      };
+
+      const token = await this.authService.generateToken(memberJwtTokenData);
+
+      const User: MemberJWTInterface = {
+        id,
+        username: memberJwtTokenData.username,
+        firstName: memberJwtTokenData.firstName,
+        lastName: memberJwtTokenData.lastName,
+        email: memberJwtTokenData.email,
+        verify: memberJwtTokenData.verify,
+        position: member.position,
+        level: member.level,
+        organizationId: member.organizationId,
+        token: token,
+      };
+
+      return User;
+    } catch (err) {
+      throw new BadRequestException(`${err.message}`);
+    }
+  }
+
+  async logoutOrganization(data: MemberJWTInterface): Promise<string> {
+    try {
+      const organization = await this.prismaService.organization.findFirst({
+        where: { id: data.organizationId },
+      });
+
+      if (!organization) {
+        throw new ConflictException('Organization dose not exist');
+      }
+
+      const user = await this.prismaService.user.findFirst({
+        where: { id: data.id },
+      });
+
+      const timestamp = Date.now();
+      const tokenDate = {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        verify: user.verify,
+        userType: user.usertype,
+        timestamp: timestamp,
+      };
+
+      const token = await this.authService.generateToken(tokenDate);
+
+      return token;
+    } catch (err) {
+      throw new BadRequestException(`${err.message}`);
     }
   }
 }

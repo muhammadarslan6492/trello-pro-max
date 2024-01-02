@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
+import {
+  CreateProjectDTO,
+  UpdateProjectDTO,
+  AssignTeamsToProjectDto,
+} from './dto/project.dto';
 import { Project } from './project.interface';
 import { User } from 'src/user/user.interface';
 
@@ -18,18 +22,6 @@ export class ProjectService {
     try {
       const obj = { ...data, userId };
       const project = await this.prismaService.project.create({ data: obj });
-
-      await this.prismaService.projectPermission.create({
-        data: {
-          projectId: project.id,
-          userId,
-          canGet: true,
-          canCreate: true,
-          canUpdate: true,
-          canDelete: true,
-        },
-      });
-
       return project;
     } catch (error) {
       throw new BadRequestException(
@@ -42,7 +34,7 @@ export class ProjectService {
     user: User,
     page: number = 1,
     pageSize: number = 10,
-  ): Promise<[Project]> {
+  ): Promise<[any]> {
     try {
       const { id, userType } = user;
       let projects;
@@ -148,16 +140,18 @@ export class ProjectService {
     data: UpdateProjectDTO,
   ): Promise<Project> {
     try {
-      const { userType, id } = user;
+      const { userType } = user;
       let project;
 
       if (userType === 'Admin') {
         project = await this.prismaService.project.findFirst({
           where: { id: projectId },
         });
+
         if (!project) {
           throw new NotFoundException('No projects found with this id');
         }
+
         project = await this.prismaService.project.update({
           where: { id: projectId },
           data: { ...data },
@@ -165,28 +159,19 @@ export class ProjectService {
         return project;
       }
 
-      const permission = await this.prismaService.projectPermission.findFirst({
-        where: {
-          AND: { projectId, userId: id },
-        },
+      project = await this.prismaService.project.findFirst({
+        where: { id: projectId },
+      });
+      if (!project) {
+        throw new NotFoundException('No projects found with this id');
+      }
+
+      project = await this.prismaService.project.update({
+        where: { id: projectId },
+        data: { ...data },
       });
 
-      if (permission?.canUpdate) {
-        project = await this.prismaService.project.findFirst({
-          where: { id: projectId },
-        });
-        if (!project) {
-          throw new NotFoundException('No projects found with this id');
-        }
-        project = await this.prismaService.project.update({
-          where: { id: projectId },
-          data: { ...data },
-        });
-
-        return project;
-      }
-
-      throw new ConflictException('Access denied.. ');
+      return project;
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -200,7 +185,6 @@ export class ProjectService {
       if (userType === 'Admin') {
         project = await this.prismaService.project.delete({
           where: { id: projectId },
-          include: { permissions: true }, // Include related permissions
         });
 
         return 'Project deleted';
@@ -220,13 +204,58 @@ export class ProjectService {
         }
         project = await this.prismaService.project.delete({
           where: { id: projectId },
-          include: { permissions: true }, // Include related permissions
         });
 
         return 'Project deleted';
       }
 
       throw new ConflictException('Access denied.. ');
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  async assignTeamsToProject(
+    input: AssignTeamsToProjectDto,
+    user: User,
+  ): Promise<string> {
+    try {
+      const { projectId, teamIds } = input;
+
+      const project = await this.prismaService.project.findFirst({
+        where: {
+          id: projectId,
+          userId: user.id,
+        },
+      });
+
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+      const projectsTeamsData = teamIds.map((teamId) => ({
+        projectId,
+        teamId,
+      }));
+
+      // Validate teamIds
+      const validTeams = await this.prismaService.team.findMany({
+        where: {
+          id: {
+            in: teamIds,
+          },
+          organizationId: project.organizationId,
+        },
+      });
+
+      if (validTeams.length !== teamIds.length) {
+        throw new BadRequestException('Invalid teamId(s) provided');
+      }
+
+      await this.prismaService.projectsTeams.createMany({
+        data: projectsTeamsData,
+      });
+
+      return `Teams assigned to project with ID ${projectId}`;
     } catch (error) {
       throw new NotFoundException(error.message);
     }

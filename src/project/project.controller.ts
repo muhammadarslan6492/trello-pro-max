@@ -28,14 +28,17 @@ import {
   ApiUnauthorizedResponse,
   ApiOkResponse,
   ApiQuery,
-  ApiParam,
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TokenBlacklistInterceptor } from '../interceptor/token-blacklist.interceptor';
 
 import { ProjectService } from './project.service';
-import { CreateProjectDTO, UpdateProjectDTO } from './dto/project.dto';
+import {
+  CreateProjectDTO,
+  UpdateProjectDTO,
+  AssignTeamsToProjectDto,
+} from './dto/project.dto';
 
 @Controller('project')
 export class ProjectController {
@@ -44,7 +47,7 @@ export class ProjectController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to create proejct')
+  @ApiTags('Create Project')
   @ApiBearerAuth()
   @ApiCreatedResponse({
     description: 'This api return with success message and created project',
@@ -64,7 +67,7 @@ export class ProjectController {
   @Get('/')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to get a list of projects')
+  @ApiTags('List Projects')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'List projects retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -104,7 +107,7 @@ export class ProjectController {
   @Get('/:id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to get a list of projects')
+  @ApiTags('Get Project:Id')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'List projects retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -122,7 +125,7 @@ export class ProjectController {
   @Put('/:id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to update a project by ID')
+  @ApiTags('Udate Project')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Project updated successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -143,7 +146,7 @@ export class ProjectController {
   @Delete('/:id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to delete project')
+  @ApiTags('Delete Project')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Project delete successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -155,6 +158,29 @@ export class ProjectController {
       return this.projectService.deleteProject(user, projectId);
     } catch (error) {
       throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Post('/assign-teams')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('Assign Team To Pproject')
+  @ApiBearerAuth()
+  @ApiCreatedResponse({
+    description: 'This api return with success message',
+  })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @UsePipes(new ValidationPipe())
+  async assignTeamToProject(
+    @Body() body: AssignTeamsToProjectDto,
+    @Request() req,
+  ) {
+    try {
+      const { user } = req;
+      return this.projectService.assignTeamsToProject(body, user);
+    } catch (err) {
+      throw new InternalServerErrorException(err);
     }
   }
 }
