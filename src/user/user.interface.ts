@@ -9,7 +9,20 @@ export interface User {
   token: string;
 }
 
-export interface Organization {
+export interface MemberJWTInterface {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  verify: boolean;
+  position: string;
+  level: string;
+  organizationId: string;
+  token?: string;
+}
+
+export interface OrganizationListInterface {
   id: string;
   name: string;
   userId: string;

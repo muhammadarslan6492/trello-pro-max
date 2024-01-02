@@ -22,18 +22,6 @@ export class ProjectService {
     try {
       const obj = { ...data, userId };
       const project = await this.prismaService.project.create({ data: obj });
-
-      await this.prismaService.projectPermission.create({
-        data: {
-          projectId: project.id,
-          userId,
-          canGet: true,
-          canCreate: true,
-          canUpdate: true,
-          canDelete: true,
-        },
-      });
-
       return project;
     } catch (error) {
       throw new BadRequestException(
@@ -152,16 +140,18 @@ export class ProjectService {
     data: UpdateProjectDTO,
   ): Promise<Project> {
     try {
-      const { userType, id } = user;
+      const { userType } = user;
       let project;
 
       if (userType === 'Admin') {
         project = await this.prismaService.project.findFirst({
           where: { id: projectId },
         });
+
         if (!project) {
           throw new NotFoundException('No projects found with this id');
         }
+
         project = await this.prismaService.project.update({
           where: { id: projectId },
           data: { ...data },
@@ -169,28 +159,19 @@ export class ProjectService {
         return project;
       }
 
-      const permission = await this.prismaService.projectPermission.findFirst({
-        where: {
-          AND: { projectId, userId: id },
-        },
+      project = await this.prismaService.project.findFirst({
+        where: { id: projectId },
+      });
+      if (!project) {
+        throw new NotFoundException('No projects found with this id');
+      }
+
+      project = await this.prismaService.project.update({
+        where: { id: projectId },
+        data: { ...data },
       });
 
-      if (permission?.canUpdate) {
-        project = await this.prismaService.project.findFirst({
-          where: { id: projectId },
-        });
-        if (!project) {
-          throw new NotFoundException('No projects found with this id');
-        }
-        project = await this.prismaService.project.update({
-          where: { id: projectId },
-          data: { ...data },
-        });
-
-        return project;
-      }
-
-      throw new ConflictException('Access denied.. ');
+      return project;
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -204,7 +185,6 @@ export class ProjectService {
       if (userType === 'Admin') {
         project = await this.prismaService.project.delete({
           where: { id: projectId },
-          include: { permissions: true }, // Include related permissions
         });
 
         return 'Project deleted';
@@ -224,7 +204,6 @@ export class ProjectService {
         }
         project = await this.prismaService.project.delete({
           where: { id: projectId },
-          include: { permissions: true }, // Include related permissions
         });
 
         return 'Project deleted';

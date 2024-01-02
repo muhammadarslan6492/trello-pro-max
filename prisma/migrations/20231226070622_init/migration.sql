@@ -1,6 +1,9 @@
 -- CreateEnum
 CREATE TYPE "UserType" AS ENUM ('User', 'ADMIN');
 
+-- CreateEnum
+CREATE TYPE "MemberLevel" AS ENUM ('Level_1', 'Level_2', 'Level_3', 'Level_4');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -55,9 +58,9 @@ CREATE TABLE "Team" (
 CREATE TABLE "Member" (
     "id" TEXT NOT NULL,
     "position" TEXT NOT NULL,
-    "level" INTEGER NOT NULL,
-    "phone" TEXT,
+    "level" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "leadId" TEXT,
     "teamId" TEXT,
     "organizationId" TEXT NOT NULL,
 
@@ -81,24 +84,24 @@ CREATE TABLE "ProjectsTeams" (
 );
 
 -- CreateTable
-CREATE TABLE "ProjectPermission" (
-    "projectId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "canGet" BOOLEAN NOT NULL,
-    "canCreate" BOOLEAN NOT NULL DEFAULT false,
-    "canUpdate" BOOLEAN NOT NULL DEFAULT false,
-    "canDelete" BOOLEAN NOT NULL DEFAULT false,
-
-    CONSTRAINT "ProjectPermission_pkey" PRIMARY KEY ("projectId","userId")
-);
-
--- CreateTable
 CREATE TABLE "Organization" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "Organization_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "OrganizationPermission" (
+    "orgId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "canGet" BOOLEAN NOT NULL,
+    "canCreate" BOOLEAN NOT NULL DEFAULT false,
+    "canUpdate" BOOLEAN NOT NULL DEFAULT false,
+    "canDelete" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "OrganizationPermission_pkey" PRIMARY KEY ("orgId","userId")
 );
 
 -- CreateIndex
@@ -129,7 +132,7 @@ ALTER TABLE "Team" ADD CONSTRAINT "Team_organizationId_fkey" FOREIGN KEY ("organ
 ALTER TABLE "Member" ADD CONSTRAINT "Member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Member" ADD CONSTRAINT "Member_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Member" ADD CONSTRAINT "Member_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -147,10 +150,10 @@ ALTER TABLE "ProjectsTeams" ADD CONSTRAINT "ProjectsTeams_projectId_fkey" FOREIG
 ALTER TABLE "ProjectsTeams" ADD CONSTRAINT "ProjectsTeams_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ProjectPermission" ADD CONSTRAINT "ProjectPermission_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ProjectPermission" ADD CONSTRAINT "ProjectPermission_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Organization" ADD CONSTRAINT "Organization_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OrganizationPermission" ADD CONSTRAINT "OrganizationPermission_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OrganizationPermission" ADD CONSTRAINT "OrganizationPermission_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

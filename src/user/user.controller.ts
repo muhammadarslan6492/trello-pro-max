@@ -10,6 +10,8 @@ import {
   UsePipes,
   ValidationPipe,
   Query,
+  ParseUUIDPipe,
+  Param,
 } from '@nestjs/common';
 
 import {
@@ -42,7 +44,7 @@ export class UserController {
   ) {}
 
   @Post('/signup')
-  @ApiTags('This api is used to signup user')
+  @ApiTags('Signup')
   @ApiCreatedResponse({ description: 'User created successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
   @UsePipes(new ValidationPipe())
@@ -55,7 +57,7 @@ export class UserController {
   }
 
   @Post('/verify-otp')
-  @ApiTags('This api is used to verify user')
+  @ApiTags('Verify-OTP')
   @ApiCreatedResponse({ description: 'User verified successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
   @UsePipes(new ValidationPipe())
@@ -68,7 +70,7 @@ export class UserController {
   }
 
   @Post('/resend-otp')
-  @ApiTags('This api is used to resend otp')
+  @ApiTags('Resent-OTP')
   @ApiCreatedResponse({ description: 'Oto Successfully sent' })
   @ApiBadRequestResponse({ description: 'Bad request' })
   @UsePipes(new ValidationPipe())
@@ -81,7 +83,7 @@ export class UserController {
   }
 
   @Post('/signin')
-  @ApiTags('This api is used to signin user')
+  @ApiTags('Signin')
   @ApiCreatedResponse({ description: 'User signin successfully' })
   @ApiBadRequestResponse({ description: 'Bad request' })
   @UsePipes(new ValidationPipe())
@@ -96,7 +98,7 @@ export class UserController {
   @Get('/profile')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to get the user profile')
+  @ApiTags('Get Profile')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'User profile retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -108,7 +110,7 @@ export class UserController {
   @Post('/logout')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This is logout Api')
+  @ApiTags('Logout')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'User logout successfully' })
   async logout(@Request() req) {
@@ -123,7 +125,7 @@ export class UserController {
   @Post('/add-organization')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This api is used to create organization')
+  @ApiTags('Add Organization')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'User profile retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -139,7 +141,7 @@ export class UserController {
   @Get('/list-organization')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to get a list of organizations')
+  @ApiTags('List Organiazation')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'List organizations retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -171,6 +173,53 @@ export class UserController {
         resolvedPage,
         resolvedPageSize,
       );
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Get('/switch-organization/:id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('Switch Organization')
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description:
+      'Return with updated User token for switched organization successfully',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async switchOrganization(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    try {
+      const { user } = req;
+      const organizationId: string = id;
+      return this.userService.switchOrganization(user, organizationId);
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  @Get('/logout-organization')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(TokenBlacklistInterceptor)
+  @ApiTags('Logout Organization')
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: 'Return with updated User token without any organization info',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async logoutOrganization(@Request() req) {
+    try {
+      const { user } = req;
+      const token = req.headers.authorization.split(' ')[1];
+
+      const response = await this.userService.logoutOrganization(user);
+
+      await this.tokenBlackList.addToBlackList(token);
+
+      return response;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

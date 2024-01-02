@@ -44,7 +44,7 @@ export class TeamController {
   @Post('/')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to create proejct')
+  @ApiTags('Create Team')
   @ApiBearerAuth()
   @ApiCreatedResponse({
     description: 'This api return with success message and created project',
@@ -64,7 +64,7 @@ export class TeamController {
   @Get('/')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('This API is used to get a list of teams')
+  @ApiTags('List Teams')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'List teams retrieved successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })

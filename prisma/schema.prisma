@@ -23,7 +23,7 @@ model User {
   verify       Boolean     @default(false)
   projects     Project[]
   members      Member[]
-  permissions  ProjectPermission[]
+  permissions   OrganizationPermission[]
   Organization Organization[]
 }
 
@@ -46,7 +46,6 @@ model Project {
   user          User            @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   members       ProjectMembers[]
   teams         ProjectsTeams[]
-  permissions   ProjectPermission[]
   organization  Organization    @relation(fields: [organizationId], references: [id])
   organizationId String
 }
@@ -63,18 +62,18 @@ model Team {
 }
 
 model Member {
-  id       String  @id @default(uuid())
-  position String
-  level    Int
-  phone    String?
-  user     User    @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  userId   String
-  leadOf   Team?   @relation("teamMembers", fields: [teamId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  teamId   String?
-  Team     Team?
-  projects ProjectMembers[]
-  organization Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
+  id              String         @id @default(uuid())
+  position        String
+  level           String
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  leadOf          Team?          @relation("teamMembers", fields: [leadId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  leadId          String?
+  teamId          String?
+  Team            Team?
+  projects        ProjectMembers[]
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  organizationId  String
 }
 
 model ProjectMembers {
@@ -95,19 +94,6 @@ model ProjectsTeams {
   @@id([projectId, teamId])
 }
 
-model ProjectPermission {
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  canGet      Boolean
-  canCreate   Boolean  @default(false)
-  canUpdate   Boolean  @default(false)
-  canDelete   Boolean  @default(false)
-
-  @@id([projectId, userId])
-}
-
 model Organization {
   id    String  @id @default(uuid())
   name  String
@@ -116,6 +102,20 @@ model Organization {
   teams Team[]
   projects Project[]
   members Member[]
+  permissions   OrganizationPermission[]
+}
+
+model OrganizationPermission {
+  orgId   String
+  userId String
+  user      User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  organization   Organization @relation(fields: [orgId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  canGet      Boolean
+  canCreate   Boolean  @default(false)
+  canUpdate   Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+
+  @@id([orgId, userId])
 }
 
 enum UserType {

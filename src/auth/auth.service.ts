@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   constructor(private readonly jwtService: JwtService) {}
 
-  async generateToken(payload: any): Promise<string> {
+  async generateToken(payload): Promise<string> {
     return this.jwtService.sign(payload);
   }
 
