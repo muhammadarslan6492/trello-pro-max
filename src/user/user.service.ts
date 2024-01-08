@@ -298,6 +298,10 @@ export class UserService {
         },
       });
 
+      if (!organization) {
+        throw new NotFoundException('Organization not found');
+      }
+
       const member = await this.prismaService.member.findFirst({
         where: { organizationId: organization.id, userId: id },
       });

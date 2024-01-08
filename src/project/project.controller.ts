@@ -44,7 +44,7 @@ import {
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
-  @Post()
+  @Post('/')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
   @ApiTags('Create Project')
@@ -57,8 +57,8 @@ export class ProjectController {
   @UsePipes(new ValidationPipe())
   async createProject(@Body() body: CreateProjectDTO, @Request() req) {
     try {
-      const id = req.user.id;
-      return this.projectService.createProject(body, id);
+      const { user } = req;
+      return this.projectService.createProject(body, user);
     } catch (err) {
       throw new InternalServerErrorException(err);
     }
@@ -125,7 +125,7 @@ export class ProjectController {
   @Put('/:id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(TokenBlacklistInterceptor)
-  @ApiTags('Udate Project')
+  @ApiTags('Update Project')
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Project updated successfully' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })

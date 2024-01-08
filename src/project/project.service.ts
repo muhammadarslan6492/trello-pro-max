@@ -12,16 +12,45 @@ import {
   AssignTeamsToProjectDto,
 } from './dto/project.dto';
 import { Project } from './project.interface';
-import { User } from 'src/user/user.interface';
+import { MemberJWTInterface, User } from 'src/user/user.interface';
 
 @Injectable()
 export class ProjectService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createProject(data: CreateProjectDTO, userId): Promise<Project> {
+  async createProject(
+    data: CreateProjectDTO,
+    user: MemberJWTInterface,
+  ): Promise<Project> {
     try {
-      const obj = { ...data, userId };
-      const project = await this.prismaService.project.create({ data: obj });
+      const { id, level, organizationId } = user;
+
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not create project out side the organization',
+        );
+      }
+
+      const checkPremission =
+        await this.prismaService.organizationPermission.findFirst({
+          where: {
+            AND: {
+              orgId: organizationId,
+              userId: id,
+              canCreate: true,
+            },
+          },
+        });
+
+      if (!checkPremission || level != 'Level_4') {
+        throw new ConflictException('Access denied');
+      }
+
+      const userId = id;
+      const obj = { ...data, userId, organizationId };
+      const project = await this.prismaService.project.create({
+        data: obj,
+      });
       return project;
     } catch (error) {
       throw new BadRequestException(
@@ -31,102 +60,71 @@ export class ProjectService {
   }
 
   async listProjects(
-    user: User,
+    user: MemberJWTInterface,
     page: number = 1,
     pageSize: number = 10,
-  ): Promise<[any]> {
+  ): Promise<any> {
     try {
-      const { id, userType } = user;
-      let projects;
+      const { organizationId } = user;
 
-      if (userType === 'Admin') {
-        projects = await this.prismaService.project.findMany({
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        });
-      } else {
-        projects = await this.prismaService.project.findMany({
-          where: { userId: id },
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        });
-
-        if (!projects || projects.length === 0) {
-          throw new NotFoundException('No projects found for the user');
-        }
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not get project list out side the organization',
+        );
       }
 
+      const projects = await this.prismaService.project.findMany({
+        where: { organizationId },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      if (!projects || projects.length === 0) {
+        throw new NotFoundException('No projects found for the user');
+      }
       return projects;
     } catch (error) {
       throw new NotFoundException('No projects found', error.message);
     }
   }
 
-  async projectById(user: User, projectId: string): Promise<Project> {
+  async projectById(
+    user: MemberJWTInterface,
+    projectId: string,
+  ): Promise<Project> {
     try {
-      const { id, userType } = user;
+      const { organizationId } = user;
 
-      let project;
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not get project out side the organization',
+        );
+      }
 
-      if (userType === 'Admin') {
-        project = await this.prismaService.project.findFirst({
-          where: { id: projectId },
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
+      const project = await this.prismaService.project.findFirst({
+        where: { AND: { id: projectId, organizationId } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
             },
           },
-        });
-        if (!project) {
-          throw new NotFoundException('No projects found');
-        }
-        return project;
-      } else {
-        project = await this.prismaService.project.findFirst({
-          where: { AND: { id: projectId, userId: id } },
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
-          },
-        });
-        if (!project) {
-          throw new NotFoundException('No projects found with this id');
-        }
+        },
+      });
+      if (!project) {
+        throw new NotFoundException('No projects found with this id');
       }
       return project;
     } catch (error) {
@@ -135,32 +133,36 @@ export class ProjectService {
   }
 
   async updateProjectById(
-    user: User,
+    user: MemberJWTInterface,
     projectId: string,
     data: UpdateProjectDTO,
   ): Promise<Project> {
     try {
-      const { userType } = user;
+      const { id, organizationId } = user;
+
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not update project out side the organization',
+        );
+      }
+
       let project;
 
-      if (userType === 'Admin') {
-        project = await this.prismaService.project.findFirst({
-          where: { id: projectId },
+      const checkPremission =
+        await this.prismaService.organizationPermission.findFirst({
+          where: {
+            userId: id,
+            orgId: organizationId,
+            canUpdate: true,
+          },
         });
 
-        if (!project) {
-          throw new NotFoundException('No projects found with this id');
-        }
-
-        project = await this.prismaService.project.update({
-          where: { id: projectId },
-          data: { ...data },
-        });
-        return project;
+      if (!checkPremission) {
+        throw new ConflictException('Access denied');
       }
 
       project = await this.prismaService.project.findFirst({
-        where: { id: projectId },
+        where: { AND: { id: projectId, organizationId } },
       });
       if (!project) {
         throw new NotFoundException('No projects found with this id');
@@ -177,39 +179,45 @@ export class ProjectService {
     }
   }
 
-  async deleteProject(user: User, projectId: string): Promise<string> {
+  async deleteProject(
+    user: MemberJWTInterface,
+    projectId: string,
+  ): Promise<string> {
     try {
-      const { id, userType } = user;
+      const { id, organizationId } = user;
+
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not delete project out side the organization',
+        );
+      }
+
       let project;
 
-      if (userType === 'Admin') {
-        project = await this.prismaService.project.delete({
-          where: { id: projectId },
+      const checkPremission =
+        await this.prismaService.organizationPermission.findFirst({
+          where: {
+            userId: id,
+            orgId: organizationId,
+            canDelete: true,
+          },
         });
 
-        return 'Project deleted';
+      if (!checkPremission) {
+        throw new ConflictException('Access denied');
       }
-      const permission = await this.prismaService.projectPermission.findFirst({
-        where: {
-          AND: { projectId, userId: id },
-        },
+
+      project = await this.prismaService.project.findFirst({
+        where: { id: projectId },
+      });
+      if (!project) {
+        throw new NotFoundException('No projects found with this id');
+      }
+      project = await this.prismaService.project.delete({
+        where: { id: projectId },
       });
 
-      if (permission?.canDelete) {
-        project = await this.prismaService.project.findFirst({
-          where: { id: projectId },
-        });
-        if (!project) {
-          throw new NotFoundException('No projects found with this id');
-        }
-        project = await this.prismaService.project.delete({
-          where: { id: projectId },
-        });
-
-        return 'Project deleted';
-      }
-
-      throw new ConflictException('Access denied.. ');
+      return 'Project deleted';
     } catch (error) {
       throw new NotFoundException(error.message);
     }

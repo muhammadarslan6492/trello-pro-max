@@ -39,7 +39,6 @@ export class CreateProjectDTO {
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
   organizationId: string;
 }
 

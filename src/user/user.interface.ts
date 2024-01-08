@@ -20,6 +20,7 @@ export interface MemberJWTInterface {
   level: string;
   organizationId: string;
   token?: string;
+  userType?: string;
 }
 
 export interface OrganizationListInterface {

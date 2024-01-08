@@ -1,36 +1,48 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { User } from 'src/user/user.interface';
+import { MemberJWTInterface } from 'src/user/user.interface';
 import { CreateTeamDTO } from './dto/team.dto';
 
 @Injectable()
 export class TeamService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createTeam(data: CreateTeamDTO, user: User): Promise<any> {
+  async createTeam(
+    data: CreateTeamDTO,
+    user: MemberJWTInterface,
+  ): Promise<any> {
     try {
-      const organization = await this.prismaService.organization.findFirst({
-        where: {
-          AND: {
-            id: data.organizationId,
-            userId: user.id,
-          },
-        },
-      });
+      const { position, organizationId, id } = user;
 
-      if (!organization) {
-        throw new NotFoundException('No organization found with org id');
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not create team out side the organization',
+        );
+      }
+
+      const checkPremission =
+        await this.prismaService.organizationPermission.findFirst({
+          where: {
+            userId: id,
+            orgId: organizationId,
+            canCreate: true,
+          },
+        });
+
+      if (!checkPremission || position != 'Level_4') {
+        throw new ConflictException('Access denied');
       }
 
       const team = await this.prismaService.team.create({
         data: {
           name: data.name,
-          organizationId: organization.id,
+          organizationId,
         },
       });
 
@@ -41,33 +53,52 @@ export class TeamService {
   }
 
   async listTeams(
-    user: User,
+    user: MemberJWTInterface,
     page: number = 1,
     pageSize: number = 10,
   ): Promise<any> {
     try {
-      const { userType } = user;
-      let projects;
+      const { organizationId, id } = user;
 
-      if (userType === 'Admin') {
-        projects = await this.prismaService.team.findMany({
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        });
-      } else {
-        projects = await this.prismaService.team.findMany({
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        });
-
-        if (!projects || projects.length === 0) {
-          throw new NotFoundException('No teams found');
-        }
+      if (!organizationId) {
+        throw new ConflictException(
+          'You can not get team list out side the organization',
+        );
       }
 
-      return projects;
+      const checkPremission =
+        await this.prismaService.organizationPermission.findFirst({
+          where: {
+            userId: id,
+            orgId: organizationId,
+            canGet: true,
+          },
+        });
+
+      if (!checkPremission) {
+        throw new ConflictException('Access denied');
+      }
+
+      const teams = await this.prismaService.team.findMany({
+        where: { organizationId },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      if (!teams || teams.length === 0) {
+        throw new NotFoundException('No projects found for the user');
+      }
+      return teams;
     } catch (error) {
-      throw new NotFoundException('No teams found', error.message);
+      throw new BadRequestException(error.message);
     }
   }
 }

@@ -21,9 +21,4 @@ export class CreateTeamDTO {
   @IsOptional()
   @ApiProperty()
   leadId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  organizationId: string;
 }
